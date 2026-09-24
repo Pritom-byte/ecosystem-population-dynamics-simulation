@@ -1,7 +1,7 @@
 # Ecosystem Population Dynamics Simulation
 ### A 7-species food-web extension of the Lotka–Volterra predator–prey model
 
-Modelling how 7 trophic groups — **Plants, Herbivores, Omnivores, Carnivores, Scavengers, Saprophages, and Decomposers** — interact and stabilise (or oscillate) over time, by extending the classical 2-species Lotka–Volterra equations into a coupled system of 7 ODEs.
+Modelling how 7 trophic groups — **Plants, Herbivores, Omnivores, Carnivores, Scavengers, Saprophages, and Decomposers** — interact over time, by extending the classical 2-species Lotka–Volterra equations into a coupled system of 7 ODEs.
 
 > Group academic project at **Hochschule Rhein-Waal** (Rhine-Waal University of Applied Sciences), supervised by **Prof. Dr. Frank Zimmer**, January 2025. Coursework later credited at Fachhochschule Südwestfalen.
 
@@ -13,33 +13,56 @@ The original Lotka–Volterra model has only two species (predator and prey). Re
 
 - What happens to predator–prey oscillations once you add **5 more trophic levels** that all interact with each other?
 - Do the classic closed-orbit phase diagrams survive, or break?
-- Which species dominate the system, and which become quietly essential?
+- Which species persist, and which don't?
 
 ## The model
 
 Seven coupled ordinary differential equations, one per species. Each equation combines a **growth term** (food consumed), one or more **loss terms** (being eaten or decomposed), and an **intraspecific competition** term (`–x·N²`) that prevents unbounded growth. ~30 rate constants in total.
 
-Solved numerically with `scipy.integrate.odeint` over `t ∈ [0, 500]` (2000 time-steps), starting from populations `[300, 250, 200, 100, 200, 400, 350]` (Plants → Decomposers).
+Solved numerically with `scipy.integrate.odeint` over `t ∈ [0, 500]`, starting from populations `[300, 250, 200, 100, 200, 400, 350]` (Plants → Decomposers).
 
 The full equations and parameter table are in [`ecosystem.pdf`](./ecosystem.pdf).
 
-## What we found
+---
 
-*(See `ecosystem.ipynb` for all 8 figures — GitHub renders the notebook in-browser.)*
+## What the model actually does
 
-- **Plants, herbivores and carnivores oscillate together** in classic predator–prey saw-tooth cycles — adding 4 extra species didn't break the core predator–prey rhythm.
-- **Decomposers spike very early, then sync up** with the plant–herbivore–carnivore cycle once organic material from die-offs becomes available.
-- **Omnivores, scavengers and saprophages decouple** from the main rhythm — these "in-between" trophic roles act as buffers rather than amplifiers.
-- The **Plants vs Herbivores** phase diagram (Figure 4) shows the textbook closed-orbit cycle — confirming the classical Lotka–Volterra dynamic still holds for that pair even inside the larger system.
-- The **Decomposers vs Saprophages** phase diagram is the most non-standard — a long sweep rather than a closed orbit, hinting at a slower nutrient-cycling regime layered underneath the faster predator–prey one.
+![Population dynamics over time](ecosystem-dynamics.png)
 
-In total the project produces **8 figures**: 1 combined population-vs-time chart and 7 phase diagrams (Plants↔Herbivores, Herbivores↔Carnivores, Omnivores↔Carnivores, Omnivores↔Herbivores, Decomposers↔Saprophages, Scavengers↔Saprophages, Plants↔Carnivores).
+**Three of the seven species go extinct almost immediately.** Omnivores, Scavengers and Saprophages fall to zero before `t = 15` and never recover. This is not a bug — it is what our chosen parameters produce. Each of those three sits in a "middle" trophic position: it is consumed by several species above it while competing for food with the species below it, and at the rate constants we picked, the losses outrun the growth from the start.
+
+**The remaining four settle into a stable repeating cycle** with a period of roughly 30 time units. Plants, Herbivores, Carnivores and Decomposers keep oscillating for the full 500-step run with no sign of damping toward equilibrium.
+
+### The surviving pairs still show classical Lotka–Volterra behaviour
+
+![Plants vs Herbivores phase diagram](phase-plants-herbivores.png)
+
+The Plants↔Herbivores trajectory converges onto a single closed orbit rather than spiralling into a fixed point. The textbook two-species dynamic survives inside the larger system — for the pairs that survive.
+
+![Herbivores vs Carnivores phase diagram](phase-herbivores-carnivores.png)
+
+Carnivores peak after Herbivores on every cycle. That lag is what makes the relationship a loop instead of a line: carnivore numbers keep climbing on a herbivore population that has already started to fall.
+
+Decomposers behave the same way one level further out: they grow on the animal populations rather than on plants, so their cycle trails the herbivore boom instead of driving it. Their early spike to ~1,350 is the transient — they feed on the three species dying off in the first few time steps.
+
+---
+
+## What we got wrong the first time
+
+An earlier version of this README described Omnivores, Scavengers and Saprophages as *"decoupling from the main rhythm"* and acting as *"buffers rather than amplifiers"*, and read the Decomposers↔Saprophages phase diagram as evidence of a *"slower nutrient-cycling regime layered underneath"*.
+
+Both readings were wrong, and re-plotting the output is what exposed them. Those three species are not buffering anything — they are at zero. The Decomposers↔Saprophages plot is not a slow regime; it is a trajectory running into extinction, and the phase diagrams involving any of the three dead species carry no information about a relationship because one side of the relationship no longer exists.
+
+The original figures hid this: on a linear axis, a population at zero is a flat line along the bottom that the eye reads as "not important" rather than "gone".
+
+---
 
 ## Limitations (and what we'd do next)
 
 - **No real ecological data fitted.** All ~30 rate constants are chosen by hand. The model demonstrates *qualitative* behaviour, not quantitative predictions for any specific ecosystem.
-- **No sensitivity analysis.** A natural next step is to vary each parameter ±20% and see which ones the system is fragile to — this would identify which species/relationships are "load-bearing".
-- **No stochasticity.** Real populations face random shocks (disease, weather). Adding noise terms and re-running would test whether the oscillations are robust or knife-edge.
+- **The parameters do not support coexistence.** Finding a parameter set where all seven species persist is the obvious next experiment, and would say more about food-web structure than the current run does.
+- **No sensitivity analysis.** Varying each parameter ±20% would identify which relationships are load-bearing and which the system barely notices.
+- **No stochasticity.** Real populations face random shocks. Adding noise terms would test whether the surviving four-species cycle is robust or knife-edge.
 
 ## Run it yourself
 
@@ -56,9 +79,10 @@ Then open `ecosystem.ipynb` and run all cells.
 
 | File | Contents |
 |---|---|
-| `ecosystem.ipynb` | The simulation — all parameters, equations, and 8 plots. |
+| `ecosystem.ipynb` | The simulation — all parameters, equations, and the full set of plots. |
 | `ecosystem.pdf` | Full 15-page write-up: introduction, derivation of all 7 equations, parameter table, results discussion, references. |
 | `requirements.txt` | `numpy`, `scipy`, `matplotlib`. |
+| `*.png` | The three figures above, re-plotted from the same model for readability. |
 
 ## Built with
 
